@@ -1,6 +1,6 @@
 const express = require('express')
 const {Server} = require('socket.io')
-const http = require('http')
+const https = require('https')
 
 //const {getDatabase , ref , set  , get , child} = require('firebase/database')
 
@@ -10,7 +10,7 @@ const db = require('./config/firebase')
 
 
 const app = express()
-const server = http.createServer(app)
+const server = https.createServer(app)
 
 const port = process.env.PORT || 5000
 const hostname = '192.168.1.37'
