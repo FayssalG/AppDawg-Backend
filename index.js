@@ -12,7 +12,7 @@ const db = require('./config/firebase')
 const app = express()
 const server = http.createServer(app)
 
-const port = 5000
+const port = process.env.PORT || 5000
 const hostname = '192.168.1.37'
 server.listen(port , hostname, ()=>{
     console.log('Listenning on '+port)
