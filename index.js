@@ -18,13 +18,21 @@ server.listen(port , ()=>{
     console.log('Listenning on '+port)
 })
 
+// Set middleware of CORS 
+app.use((req, res, next) => {
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      "*"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,CONNECT,TRACE"
+    );
+  
+    next();
+  });
 
-const io = new Server(server , {
-    cors : {
-        origin : '*',
-        methods : ['POST' , 'GET']
-    }
-})
+const io = new Server(server )
 
 
 
