@@ -20,10 +20,7 @@ server.listen(port , ()=>{
 
 
 const io = new Server(server , {
-    cors : {
-        origin : '*',
-        methods : ['POST' , 'GET']
-    }
+    cors : {origin: ['http://localhost:5173', 'http://127.0.0.1:5173']}
 })
 
 
