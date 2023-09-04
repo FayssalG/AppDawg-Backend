@@ -31,6 +31,7 @@ const io = new Server(server , {
 let connectedUsers = {}
 
 io.on('connection'  , (socket)=>{
+    console.log('connected to socket !')
     const id = socket.handshake.query.id
     socket.join(id)
     connectedUsers[id] = 'online'
