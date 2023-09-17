@@ -13,3 +13,4 @@ const {getFirestore  , query , getDoc, getDocs, updateDoc , doc ,setDoc , addDoc
 
 const firebaseApp = initializeApp(firebaseConfig)
 const db = getFirestore(firebaseApp)
+module.exports = {db}
