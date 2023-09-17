@@ -82,8 +82,7 @@ io.on('connection'  , (socket)=>{
         let {recipient , message , discussionId} = data
         let newRecipient = {id , name:id}
         if(connectedUsers[recipient.id] == 'online'){
-            console.log(recipient.id+' is connected message sent !')
-            console.log(message)
+            //console.log(recipient.id+' is connected message sent !')
             socket.broadcast.to(recipient.id).emit('receive-message',{discussionId , recipient:newRecipient , message})
             
         } 
@@ -96,7 +95,7 @@ io.on('connection'  , (socket)=>{
                 message : message,
                 isReceived : false
             })
-            console.log(recipient.id+' is not connected message saved !')
+            //console.log(recipient.id+' is not connected message saved !')
         }
        
     })
@@ -125,7 +124,6 @@ io.on('connection'  , (socket)=>{
     
     socket.on('message-seen' , ({recipientId , discussionId })=>{
         if(connectedUsers[recipientId] == 'online'){
-            console.log(discussionId)
             socket.broadcast.to(recipientId).volatile.emit('message-status-update',{discussionId, type:'seen'})
 
         }else{
