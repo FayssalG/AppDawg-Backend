@@ -1,20 +1,20 @@
+
 const express = require('express')
 const {Server} = require('socket.io')
 const http = require('http')
 
 //const {getDatabase , ref , set  , get , child} = require('firebase/database')
 
-const {getFirestore  , query , getDoc, getDocs, updateDoc , doc ,setDoc , addDoc , collection , where} = require('firebase/firestore')
-const db = require('./config/firebase')
+const {  query , getDoc, getDocs, updateDoc , doc ,setDoc , addDoc , collection , where, and} = require('firebase/firestore')
 
-
+const {db} =  require('./config/firebase')
 
 const app = express()
 const server = http.createServer(app)
 
 const port = process.env.PORT || 5000
-const hostname = '192.168.1.138'
-server.listen(port , ()=>{
+const hostname = '192.168.1.14'
+server.listen(  port , hostname , ()=>{
     console.log('Listenning on '+port)
 })
 
@@ -37,6 +37,32 @@ io.on('connection'  , (socket)=>{
     socket.join(id)
     connectedUsers[id] = 'online'
     
+    //send any unreceived messages to the new connected user  
+    const messagesCollection = collection(db  , 'messages') 
+    getDocs(query(messagesCollection , and( where('isReceived' , '==' , false), where('to' , '==' , id)  )))
+    .then((snapshot)=>{
+        snapshot.forEach((doc)=>{
+            const data = doc.data()
+            socket.emit('receive-message',{discussionId:data.discussionId , recipient:{name:data.from ,id:data.from} , message:data.message})
+            
+        })     
+       
+    })
+    
+    //send feedback to the new connected user
+    getDocs(query(messagesCollection , and( where('from' , '==' , id), where('isReceived' , '==' , true)  )))
+    .then((snapshot)=>{
+        snapshot.forEach((doc)=>{
+            const data = doc.data()
+          
+            if(data.isSeen) socket.volatile.emit('message-seen-update',{ discussionId : data.discussionId })
+            else socket.volatile.emit('message-received-update',{discussionId:data.discussionId  ,messageId:data.message.messageId})  
+        })     
+       
+    })
+    
+
+
     //send to everyone the status of the new connected user
     socket.broadcast.emit('user-connected' , {recipientId:id, newStatus:connectedUsers[id]} )
     
@@ -53,18 +79,70 @@ io.on('connection'  , (socket)=>{
     //handling messages 
     socket.on('send-message' , (data)=>{
         let {recipient , message , discussionId} = data
-        
         let newRecipient = {id , name:id}
-        socket.broadcast.to(recipient.id).emit('recieve-message',{discussionId , recipient:newRecipient , message})
+        if(connectedUsers[recipient.id] == 'online'){
+            console.log(recipient.id+' is connected message sent !')
+            console.log(message)
+            socket.broadcast.to(recipient.id).emit('receive-message',{discussionId , recipient:newRecipient , message})
+            
+        } 
+        else {
+            const messagesDoc = doc(db  , 'messages' , discussionId+message.messageId )
+            setDoc(messagesDoc , {
+                discussionId : discussionId,
+                from : id,
+                to : recipient.id,
+                message : message,
+                isReceived : false
+            })
+            console.log(recipient.id+' is not connected message saved !')
+        }
+       
     })
 
     socket.on('message-received' , ({recipientId , discussionId ,messageId})=>{
-        socket.broadcast.to(recipientId).volatile.emit('message-received-update',{discussionId ,messageId})
+        if(connectedUsers[recipientId] == 'online'){
+            socket.broadcast.to(recipientId).volatile.emit('message-status-update',{discussionId, messageId , type:'received'})
+
+        }else{
+            const messagesCollection = collection(db , 'messages')
+            getDocs( query(messagesCollection , where('discussionId' , '==' , discussionId) ))
+            .then((snapshot)=>{
+                snapshot.forEach((docSnap)=>{
+                    if(docSnap.id){
+                        const docRef = doc(db , 'messages' , docSnap.id)
+                        updateDoc(docRef , {
+                            isReceived : true
+                        })    
+                    }
+                })
+            })
+    
+        }
     })
 
     
-    socket.on('message-seen' , ({recipientId , discussionId})=>{
-        socket.broadcast.to(recipientId).volatile.emit('message-seen-update',{discussionId })
+    socket.on('message-seen' , ({recipientId , discussionId })=>{
+        if(connectedUsers[recipientId] == 'online'){
+            console.log(discussionId)
+            socket.broadcast.to(recipientId).volatile.emit('message-status-update',{discussionId, type:'seen'})
+
+        }else{
+            const messagesCollection = collection(db , 'messages')
+            getDocs( query(messagesCollection , where('discussionId' , '==' , discussionId) ))
+            .then((snapshot)=>{
+                snapshot.forEach((docSnap)=>{
+                    if(docSnap.id){
+                        const docRef = doc(db , 'messages' , docSnap.id)
+                        updateDoc(docRef , {
+                            isReceived : true,
+                            isSeen : true
+                        })    
+                    }
+                })
+            })    
+        }
+
     })
 
 
@@ -148,4 +226,5 @@ io.on('connection'  , (socket)=>{
     
 //     return data
 // }
+
 
